@@ -2,34 +2,37 @@ import telebot
 import webbrowser
 from telebot import types
 
+import os
+
+import openai
+KEY = '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'
 bot = telebot.TeleBot('6718573593:AAHVZng3giJHCTsO9m7ieF7qa3Z22Cghp3Y')
 
-@bot.message_handler(content_types=['photo'])
-def get_photo(message):
-    markup = types.InlineKeyboardMarkup()
-    btn1 = types.InlineKeyboardButton('Перейти на сайт', url='https://www.youtube.com')
-    btn2 = types.InlineKeyboardButton('Удалить фото', callback_data='delete_photo')
-    btn3 = types.InlineKeyboardButton('Изменить текст', callback_data='change_text')
-    markup.row(btn1)
-    markup.row(btn2,btn3)
-    bot.reply_to(message, 'Мерзость то какая', reply_markup=markup)
-
-@bot.message_handler(commands=['site','website'])
-def main(message):
-    webbrowser.open('https://www.youtube.com')
-
-
+openai.api_key = KEY
 @bot.message_handler(commands=['start'])
+def hello(message):
+    bot.send_message(message.chat.id,'Привет, я твой CHAT-GPT-BOT. Готов тебе помочь')
+
+@bot.message_handler(content_types=['text'])
 def main(message):
-    bot.send_message(message.chat.id,f"Привет! {message.from_user.first_name} {message.from_user.last_name}")
+    user_message = message.text
+    system_msg = 'You are a helpful assistant who understands data science.'
+    reply = ''
+    response = openai.ChatCompletion.create(
+        model="gpt-3.5-turbo",
+        messages=[{"role": "system", "content": system_msg},
+                  {"role": "user", "content": user_message}],
+        max_tokens=200,
+        temperature=0.3,
+        n=1,
+        stop=None,
+        timeout=15
+    )
+    if response and response.choices:
+        reply = response['choices'][0]['message']['content']
+    else:
+        reply = 'Ой что то не так'
 
-
-@bot.message_handler()
-def info(message):
-    if message.text.lower() == 'привет':
-        bot.send_message(message.chat.id, f"Привет! {message.from_user.first_name} {message.from_user.last_name}")
-    elif message.text.lower() == 'id':
-        bot.reply_to(message, f'ID: {message.from_user.id}')
-
+    bot.send_message(message.chat.id, reply)
 
 bot.polling(none_stop=True)
