@@ -15,7 +15,11 @@ selected_model = None
 
 @bot.message_handler(commands=['start'])
 def hello(message):
-    bot.send_message(message.chat.id, 'Привет, я твой CHAT-GPT-BOT. Готов тебе помочь')
+    bot.send_message(message.chat.id, 'Привет, я твой универсальный бот. Готов тебе помочь \nВ этом чат-боте вы можете пользоваться следующими командами: \n /dalle - позволяет использовать chat-gpt-3.5-turbo \n /gpt - позволяет использовать DALL·E \n /help - позволяет посмотреть все команды доступные в этом боте')
+
+@bot.message_handler(commands=['help'])
+def help(message):
+    bot.send_message(message.chat.id, 'В этом чат-боте вы можете пользоваться следующими командами: \n /dalle - позволяет использовать chat-gpt-3.5-turbo \n /gpt - позволяет использовать DALL·E \n /help - позволяет посмотреть все команды доступные в этом боте')
 
 @bot.message_handler(commands=['gpt'])
 def select_gpt(message):
@@ -27,7 +31,7 @@ def select_gpt(message):
 def select_dalle(message):
     global selected_model
     selected_model = 'dalle'
-    bot.send_message(message.chat.id, 'Вы выбрали DALL-E. Введите путь к изображению:')
+    bot.send_message(message.chat.id, 'Вы выбрали DALL-E. Введите ваш запрос:')
 
 @bot.message_handler(content_types=['text'])
 def handle_text_message(message):
@@ -69,9 +73,16 @@ def process_image_dalle(message):
     response = requests.post(url, json={"prompt": user_message}, headers=headers)
     if response.status_code == 200:
         result = response.json()
-        print(result)
-        if 'url' in result['data']:
-            image_url = result['url']  # Получаем URL картинки из ответа
+        if 'data' in result:
+            data_list = result['data']
+            if len(data_list) > 0:
+                first_data = data_list[0]
+                if 'url' in first_data:
+                    image_url = first_data['url']
+                else:
+                    print('Ошибка: ключ "url" отсутствует во вложенном объекте')
+            else:
+                print('Ошибка: список "data" пуст')
             send_image_to_telegram(image_url, message)
         else:
             bot.send_message(message.chat.id, 'Ошибка при обработке изображения: ключ "image" отсутствует в ответе')
@@ -88,10 +99,5 @@ def send_image_to_telegram(image_url, message):
     }
 
     response = requests.post(telegram_api_url, data=payload)
-
-    if response.status_code == 200:
-        bot.send_message(message.chat.id, 'Картинка успешно отправлена в Telegram')
-    else:
-        bot.send_message(message.chat.id, 'Ошибка при отправке картинки в Telegram')
 
 bot.polling(none_stop=True)
