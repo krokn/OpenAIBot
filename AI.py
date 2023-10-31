@@ -1,16 +1,19 @@
 import telebot
 import requests
 from telebot import types
+import time
+import queue
+
+request_queue = queue.Queue(maxsize=3)
 
 import openai
 
 KEY = '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'
 KEY_BOT = '6718573593:AAHVZng3giJHCTsO9m7ieF7qa3Z22Cghp3Y'
-
+last_request_time = 0
 bot = telebot.TeleBot(KEY_BOT)
 
 openai.api_key = KEY
-
 selected_model = None
 
 @bot.message_handler(commands=['start'])
@@ -21,9 +24,17 @@ def hello(message):
 def help(message):
     bot.send_message(message.chat.id, 'В этом чат-боте вы можете пользоваться следующими командами: \n /dalle - позволяет использовать chat-gpt-3.5-turbo \n /gpt - позволяет использовать DALL·E \n /help - позволяет посмотреть все команды доступные в этом боте')
 
+
 @bot.message_handler(commands=['gpt'])
 def select_gpt(message):
     global selected_model
+    current_time = time.time()
+
+    if request_queue.full():
+        bot.send_message(message.chat.id, 'Слишком много запросов. Пожалуйста, подождите.')
+        return
+
+    request_queue.put(current_time)
     selected_model = 'gpt'
     bot.send_message(message.chat.id, 'Вы выбрали GPT. Введите ваш запрос:')
 
@@ -32,7 +43,6 @@ def select_dalle(message):
     global selected_model
     selected_model = 'dalle'
     bot.send_message(message.chat.id, 'Вы выбрали DALL-E. Введите ваш запрос:')
-
 @bot.message_handler(content_types=['text'])
 def handle_text_message(message):
     if selected_model == 'gpt':
