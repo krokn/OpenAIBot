@@ -8,8 +8,8 @@ request_queue = queue.Queue(maxsize=3)
 
 import openai
 
-KEY = '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'
-KEY_BOT = '6718573593:AAHVZng3giJHCTsO9m7ieF7qa3Z22Cghp3Y'
+KEY = 'API_KEY'
+KEY_BOT = 'BOT_KEY'
 last_request_time = 0
 bot = telebot.TeleBot(KEY_BOT)
 
